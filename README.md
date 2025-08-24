@@ -2,12 +2,6 @@
 
 Chatbot Rag adalah aplikasi chatbot berbasis Python yang menggunakan Supabase dan OpenAI untuk melakukan retrieval-augmented generation (RAG).
 
-## Fitur
-
-- Integrasi dengan Supabase untuk penyimpanan data
-- Menggunakan OpenAI Embeddings untuk pemrosesan teks
-- Pengelolaan environment variable melalui file `.env`
-
 ## Instalasi
 
 1. Clone repository ini:
@@ -58,4 +52,4 @@ uvicorn main:app --reload
 - `config.py` : Konfigurasi aplikasi
 - `api/` : Endpoint API
 - `schemas/` : Skema data
-- `services/` : Layanan bisnis logic (Supabase, Embedding, dsb)
+- `services/` : Logic (Supabase, Embedding, dsb)
