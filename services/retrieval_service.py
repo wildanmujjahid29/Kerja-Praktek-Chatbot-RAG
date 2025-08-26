@@ -18,7 +18,7 @@ def search_similar_documents(
     query: str, 
     match_threshold: float = 0.7, 
     match_count: int = 5
- ) -> List[Dict]:
+) -> List[Dict]:
     try:
         query_embedding = embeddings.embed_query(query)
         query_embedding = normalize_vector(query_embedding)

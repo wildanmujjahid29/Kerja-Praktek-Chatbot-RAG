@@ -4,7 +4,7 @@ from services.rag_service import run_rag
 
 router = APIRouter()
 
-@router.post("/{service_id}")
+@router.post("/rag/{service_id}")
 def rag_answer(service_id: str, body: RAGRequest):
     try:
         result = run_rag(
