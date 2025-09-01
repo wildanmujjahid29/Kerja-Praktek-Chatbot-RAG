@@ -6,6 +6,7 @@ from api.service_router import router as service_router
 from api.prompt_router import router as prompt_router
 from api.retrieval_router import router as retrieval_router
 from api.rag_router import router as rag_router
+from api.dashboard_router import router as dashboard_router
 
 app = FastAPI()
 
@@ -27,6 +28,7 @@ def root():
     }
     
 app.include_router(rag_router, tags=["RAG"])
+app.include_router(dashboard_router, tags=["Dashboard"])
 app.include_router(document_router, tags=["Documents"])
 app.include_router(retrieval_router, tags=["Retrieval"])
 app.include_router(service_router, tags=["Services"])
