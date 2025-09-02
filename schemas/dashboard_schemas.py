@@ -17,3 +17,11 @@ class ServiceStats(BaseModel):
     total_documents: int
     total_sessions: int
     total_messages: int
+    
+class MonthlyAnalyticsItem(BaseModel):
+    month: str 
+    sessions: int
+    messages: int
+
+class MonthlyAnalyticsResponse(BaseModel):
+    items: List[MonthlyAnalyticsItem]
