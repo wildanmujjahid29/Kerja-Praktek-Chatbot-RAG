@@ -1,18 +1,14 @@
 from fastapi import APIRouter, HTTPException
 
 from schemas.prompt_schemas import PromptCreate, PromptResponse, PromptUpdate
-from services.prompt_service import (
-    create_prompt_db,
-    get_prompt_db,
-    update_prompt_db,
-    delete_prompt_db
-)
+from services.prompt_service import (create_prompt_db, delete_prompt_db,
+                                     get_prompt_db, update_prompt_db)
 
 router = APIRouter()
 
 @router.post("/prompt", response_model=PromptResponse)
 def create_prompt(service_id: str, prompt: PromptCreate):
-    result = create_prompt_db(service_id, prompt.prompt)
+    result = create_prompt_db(service_id, prompt.prompt, prompt.fallback_response)
     if not result:
         raise HTTPException(status_code=400, detail="Failed to create prompt")
     return result

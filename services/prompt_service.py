@@ -2,8 +2,8 @@ from config import supabase
 
 TABLE_NAME = "primary_prompts"
 
-def create_prompt_db(service_id: str, prompt: str):
-    data = {"service_id": service_id, "prompt": prompt}
+def create_prompt_db(service_id: str, prompt: str, fallback_response: str = None):
+    data = {"service_id": service_id, "prompt": prompt, "fallback_response": fallback_response}
     result = supabase.table(TABLE_NAME).insert(data).execute()
     return result.data[0] if result.data else None
 
