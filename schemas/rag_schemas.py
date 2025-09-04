@@ -1,7 +1,22 @@
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
-from typing import Optional
+
 
 class RAGRequest(BaseModel):
     query: Optional[str] = None
     k: Optional[int] = 4
     min_similarity: Optional[float] = 0.5
+
+class RAGSource(BaseModel):
+    index: int
+    filename: str
+    similarity: float
+
+class RAGResponse(BaseModel):
+    answer: str
+    sources: List[Dict[str, Any]] = []
+    used_k: int = 0
+    query: str
+    is_fallback: bool = False
+    is_restricted_topic: bool = False

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from schemas.rag_schemas import RAGRequest
+
+from schemas.rag_schemas import RAGRequest, RAGResponse
 from services.rag_service import run_rag
 
 router = APIRouter()
 
-@router.post("/rag/{service_id}")
+@router.post("/rag/{service_id}", response_model=RAGResponse)
 def rag_answer(service_id: str, body: RAGRequest):
     try:
         result = run_rag(
@@ -13,9 +14,6 @@ def rag_answer(service_id: str, body: RAGRequest):
             k=body.k or 4,
             min_similarity=body.min_similarity or 0.4
         )
-        return {
-            "status": "success",
-            **result
-        }
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
