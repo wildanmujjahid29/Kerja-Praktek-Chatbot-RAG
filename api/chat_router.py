@@ -3,19 +3,18 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Query
 
 from schemas.chat_schemas import (ChatResponse, ChatSession,
-                                    ChatSessionWithMessages,
-                                    CreateChatSessionRequest, SendMessageRequest)
+                                  ChatSessionWithMessages,
+                                  CreateChatSessionRequest, SendMessageRequest)
 from services.chat_service import (create_session, delete_session,
-                                    get_session_with_messages,
-                                    list_sessions_by_service,
-                                    list_sessions_by_user, send_message)
+                                   get_session_with_messages,
+                                   list_sessions_by_user, send_message)
 
 router = APIRouter()
 
 @router.post("/chat/session")
 def create_chat_session(request: CreateChatSessionRequest) -> ChatSession:
     try:
-        session = create_session(user_id=request.user_id, service_id=request.service_id, session_name=request.session_name or "New Chat")
+        session = create_session(user_id=request.user_id, session_name=request.session_name or "New Chat")
         return session
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -43,14 +42,6 @@ def get_chat_session(session_id: str) -> ChatSessionWithMessages:
     try:
         session = get_session_with_messages(session_id=session_id)
         return session
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/chat/sessions/{service_id}", include_in_schema=False)
-def list_chat_sessions(user_id: str, service_id: str) -> List[ChatSession]:
-    try:
-        sessions = list_sessions_by_service(user_id, service_id)
-        return sessions
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

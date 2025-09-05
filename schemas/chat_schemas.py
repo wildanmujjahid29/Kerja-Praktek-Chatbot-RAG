@@ -13,7 +13,7 @@ class ChatMessage(BaseModel):
     
 class ChatSession(BaseModel):
     id: str
-    service_id: str
+    user_id: Optional[str] = None
     session_name: str
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
@@ -24,13 +24,12 @@ class ChatSessionWithMessages(ChatSession):
     
 class CreateChatSessionRequest(BaseModel):
     user_id: str
-    service_id: str
     session_name: Optional[str] = "New Chat"
     
 class SendMessageRequest(BaseModel):
     message: str
-    k: Optional[int] = 3
-    min_similarity: Optional[float] = 0.3
+    k: Optional[int] = 5
+    min_similarity: Optional[float] = 0.5
     
 class ChatResponse(BaseModel):
     session_id: str 

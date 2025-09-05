@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -17,4 +18,5 @@ class PromptUpdate(BaseModel):
 
 class PromptResponse(PromptBase):
     id: uuid.UUID
-    service_id: uuid.UUID
+    updated_at: Optional[datetime] = None
+    is_active: Optional[bool] = True

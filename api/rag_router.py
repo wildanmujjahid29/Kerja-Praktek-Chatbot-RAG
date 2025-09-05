@@ -5,11 +5,10 @@ from services.rag_service import run_rag
 
 router = APIRouter()
 
-@router.post("/rag/{service_id}", response_model=RAGResponse)
-def rag_answer(service_id: str, body: RAGRequest):
+@router.post("/rag", response_model=RAGResponse)
+def rag_answer(body: RAGRequest):
     try:
         result = run_rag(
-            service_id=service_id,
             query=body.query,
             k=body.k or 4,
             min_similarity=body.min_similarity or 0.4
