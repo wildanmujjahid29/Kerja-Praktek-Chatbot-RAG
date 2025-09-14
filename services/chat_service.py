@@ -1,23 +1,18 @@
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from config import supabase
 from schemas.chat_schemas import (ChatMessage, ChatSession,
-                                    ChatSessionWithMessages)
+                                  ChatSessionWithMessages)
 from services.rag_service import run_rag
 
 CHAT_SESSIONS = "chat_sessions"
 CHAT_MESSAGES = "chat_messages"
 
 
-def create_session(user_id: str, service_id: str, session_name: str = "New Chat") -> ChatSession:
-    # Ambil nama service dari database
-    service_result = supabase.table("services").select("name").eq("id", service_id).single().execute()
-    service_name = service_result.data["name"] if service_result.data else ""
-    # Gabungkan ke session_name
-    session_name_full = f"{session_name} - {service_name}" if service_name else session_name
-    data = {"user_id": user_id, "service_id": service_id, "session_name": session_name_full}
+def create_session(user_id: str, session_name: str = "New Chat") -> ChatSession:
+    data = {"user_id": user_id, "session_name": session_name}
     result = supabase.table(CHAT_SESSIONS).insert(data).execute()
     if not result.data:
         raise Exception("Failed to create chat session")
@@ -36,13 +31,6 @@ def get_session_with_messages(session_id: str) -> ChatSessionWithMessages:
     messages_data = messages_result.data or []
     messages = [ChatMessage(**msg) for msg in messages_data]
     return ChatSessionWithMessages(**session_data, messages=messages)
-
-def list_sessions_by_service(user_id: str, service_id: str) -> List[ChatSession]:
-    result = supabase.table(CHAT_SESSIONS).select("*").eq("user_id", user_id).eq("service_id", service_id).eq("is_active", True).order("updated_at", desc=True).execute()
-
-    sessions_data = result.data or []
-    return [ChatSession(**session) for session in sessions_data]
-
 
 def list_sessions_by_user(user_id: str) -> List[ChatSession]:
     result = supabase.table(CHAT_SESSIONS).select("*").eq("user_id", user_id).eq("is_active", True).order("updated_at", desc=True).execute()
@@ -64,22 +52,19 @@ def save_message(session_id: str, role: str, content: str, sources: List[Dict] =
 
     return ChatMessage(**message_data)
 
-def send_message(session_id: str, user_message: str, k: int = 3, min_similarity: float = 0.3) -> Dict[str, Any]:
-    # Get session to get service_id
-    session = get_session_with_messages(session_id)
+def send_message(session_id: str, user_message: str, k: int = 5, min_similarity: float = 0.3) -> Dict[str, Any]:
+    # Get session to validate it exists
+    get_session_with_messages(session_id)
     
     # Save user message
     user_msg = save_message(session_id, "user", user_message)
     
     # Get RAG result
-    print(f"DEBUG chat_service: Calling run_rag with service_id={session.service_id}, query='{user_message}'")
     rag_result = run_rag(
-        service_id=session.service_id,
         query=user_message,
-        k=k,
-        min_similarity=min_similarity
+    k=k,
+    min_similarity=min_similarity
     )
-    print(f"DEBUG chat_service: RAG result = {rag_result}")
 
     # Save RAG result
     assistant_msg = save_message(session_id, "assistant", rag_result["answer"], rag_result.get("sources", []))

@@ -1,12 +1,14 @@
 import os
-import numpy as np
 from typing import Dict, List
+
+import numpy as np
 from langchain_openai import OpenAIEmbeddings
 
 from config import supabase
+from config import get_api_key
 
 # OpenAI Embeddings
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=get_api_key())
 
 def normalize_vector(vec):
     vec = np.array(vec)
@@ -14,7 +16,6 @@ def normalize_vector(vec):
     return (vec / norm).tolist() if norm > 0 else vec.tolist()
 
 def search_similar_documents(
-    service_id: str, 
     query: str, 
     match_threshold: float = 0.7, 
     match_count: int = 5
@@ -26,7 +27,6 @@ def search_similar_documents(
             'match_documents',
             {
                 'query_embedding' : query_embedding,
-                'service_id' : service_id,
                 'match_threshold' : match_threshold,
                 'match_count' : match_count
             }

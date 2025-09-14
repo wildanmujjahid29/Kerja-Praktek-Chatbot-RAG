@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -14,4 +15,12 @@ class DocumentOut(BaseModel):
     filename: str
     file_type: str
     uploaded_at: datetime
-    
+
+class DocumentTagOut(DocumentOut):
+    service_tag: Optional[str] = None
+
+class UpdateTagRequest(BaseModel):
+    service_tag: Optional[str] = None
+
+class UniqueTagsResponse(BaseModel):
+    tags: list[str] 

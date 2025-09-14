@@ -1,9 +1,10 @@
 import os
 import re
 import unicodedata
-import numpy as np
 
-from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader,TextLoader
+import numpy as np
+from langchain_community.document_loaders import (Docx2txtLoader, PyPDFLoader,
+                                                  TextLoader)
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -18,14 +19,34 @@ def load_text_from_file(file_path: str):
     file_extension = file_path.split(".")[-1].lower()
     if file_extension == 'pdf':
         loader = PyPDFLoader(file_path)
+        docs = loader.load()
+        return "\n".join([doc.page_content for doc in docs])
     elif file_extension == 'docx':
         loader = Docx2txtLoader(file_path)
+        docs = loader.load()
+        return "\n".join([doc.page_content for doc in docs])
     elif file_extension == 'txt':
-        loader = TextLoader(file_path)
+        # Custom text loading with encoding handling
+        try:
+            # Try UTF-8 first
+            with open(file_path, 'r', encoding='utf-8') as file:
+                return file.read()
+        except UnicodeDecodeError:
+            try:
+                # Try UTF-8 with ignore errors
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+                    return file.read()
+            except:
+                try:
+                    # Try cp1252 (Windows encoding)
+                    with open(file_path, 'r', encoding='cp1252') as file:
+                        return file.read()
+                except:
+                    # Last resort - latin-1
+                    with open(file_path, 'r', encoding='latin-1') as file:
+                        return file.read()
     else:
         raise ValueError("Unsupported file type. Please provide a PDF, DOCX, or TXT file.")
-    docs = loader.load()
-    return "\n".join([doc.page_content for doc in docs])
 
 
 def preprocess_text(text: str) -> str:
@@ -41,7 +62,7 @@ def normalize_vector(vec):
     return (vec / norm).tolist() if norm > 0 else vec.tolist()
 
 
-def embedding_text_from_file(service_id:str, file_path: str, original_filename: str):
+def embedding_text_from_file(file_path: str, original_filename: str, service_tag: str = None):
     extension = original_filename.split(".")[-1].lower()
     
     # Load and preprocess text
@@ -62,11 +83,11 @@ def embedding_text_from_file(service_id:str, file_path: str, original_filename: 
 
         # Store in Supabase
         data = {
-            "service_id": service_id,
             "content": chunk,
             "embedding": vector,
             "filename": original_filename,
-            "file_type": extension
+            "file_type": extension,
+            "service_tag": service_tag
         }
         supabase.table(TABLE_NAME).insert(data).execute()
         result.append(data)

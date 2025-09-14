@@ -1,18 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from schemas.rag_schemas import RAGRequest, RAGResponse
 from services.rag_service import run_rag
-
+from dependencies.auth_deps import admin_required
 router = APIRouter()
 
-@router.post("/rag/{service_id}", response_model=RAGResponse)
-def rag_answer(service_id: str, body: RAGRequest):
+@router.post("/rag", response_model=RAGResponse)
+def rag_answer(body: RAGRequest, admin=Depends(admin_required)):
     try:
         result = run_rag(
-            service_id=service_id,
             query=body.query,
-            k=body.k or 4,
-            min_similarity=body.min_similarity or 0.4
+            k=5,
+            min_similarity=0.3
         )
         return result
     except Exception as e:

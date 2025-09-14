@@ -4,9 +4,7 @@ from pydantic import BaseModel
 
 
 class RAGRequest(BaseModel):
-    query: Optional[str] = None
-    k: Optional[int] = 4
-    min_similarity: Optional[float] = 0.5
+    query: str
 
 class RAGSource(BaseModel):
     index: int
