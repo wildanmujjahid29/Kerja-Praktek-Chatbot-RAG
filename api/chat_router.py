@@ -3,11 +3,11 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Query
 
 from schemas.chat_schemas import (ChatResponse, ChatSession,
-                                  ChatSessionWithMessages,
-                                  CreateChatSessionRequest, SendMessageRequest)
+                                    ChatSessionWithMessages,
+                                    CreateChatSessionRequest, SendMessageRequest)
 from services.chat_service import (create_session, delete_session,
-                                   get_session_with_messages,
-                                   list_sessions_by_user, send_message)
+                                    get_session_with_messages,
+                                    list_sessions_by_user, send_message)
 
 router = APIRouter()
 

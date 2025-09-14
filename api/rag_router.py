@@ -10,8 +10,8 @@ def rag_answer(body: RAGRequest):
     try:
         result = run_rag(
             query=body.query,
-            k=body.k or 4,
-            min_similarity=body.min_similarity or 0.4
+            k=5,
+            min_similarity=0.3
         )
         return result
     except Exception as e:

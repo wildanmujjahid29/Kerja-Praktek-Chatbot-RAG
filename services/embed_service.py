@@ -87,7 +87,7 @@ def embedding_text_from_file(file_path: str, original_filename: str, service_tag
             "embedding": vector,
             "filename": original_filename,
             "file_type": extension,
-            "service_tag": service_tag  # Optional tag for admin categorization
+            "service_tag": service_tag
         }
         supabase.table(TABLE_NAME).insert(data).execute()
         result.append(data)

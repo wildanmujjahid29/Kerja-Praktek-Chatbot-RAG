@@ -28,9 +28,9 @@ class CreateChatSessionRequest(BaseModel):
     
 class SendMessageRequest(BaseModel):
     message: str
-    k: Optional[int] = 5
-    min_similarity: Optional[float] = 0.5
-    
+    k: int = 5
+    min_similarity: float = 0.3
+        
 class ChatResponse(BaseModel):
     session_id: str 
     user_message: ChatMessage

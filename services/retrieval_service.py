@@ -5,9 +5,10 @@ import numpy as np
 from langchain_openai import OpenAIEmbeddings
 
 from config import supabase
+from config import get_api_key
 
 # OpenAI Embeddings
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=get_api_key())
 
 def normalize_vector(vec):
     vec = np.array(vec)

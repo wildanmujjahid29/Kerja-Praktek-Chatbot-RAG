@@ -1,6 +1,6 @@
 from config import supabase
 
-TABLE_NAME = "chatbot_config"
+TABLE_NAME = "primary_prompt"
 
 def create_prompt_db(prompt: str, fallback_response: str = None):
     data = {"prompt": prompt, "fallback_response": fallback_response, "is_active": True}

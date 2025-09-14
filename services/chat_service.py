@@ -52,7 +52,7 @@ def save_message(session_id: str, role: str, content: str, sources: List[Dict] =
 
     return ChatMessage(**message_data)
 
-def send_message(session_id: str, user_message: str, k: int = 3, min_similarity: float = 0.3) -> Dict[str, Any]:
+def send_message(session_id: str, user_message: str, k: int = 5, min_similarity: float = 0.3) -> Dict[str, Any]:
     # Get session to validate it exists
     get_session_with_messages(session_id)
     
@@ -62,8 +62,8 @@ def send_message(session_id: str, user_message: str, k: int = 3, min_similarity:
     # Get RAG result
     rag_result = run_rag(
         query=user_message,
-        k=k,
-        min_similarity=min_similarity
+    k=k,
+    min_similarity=min_similarity
     )
 
     # Save RAG result

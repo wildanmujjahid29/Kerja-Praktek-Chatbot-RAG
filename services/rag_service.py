@@ -1,12 +1,12 @@
 import os
 from typing import Any, Dict, List
-
 from openai import OpenAI
 
-from services.prompt_service import get_prompt_db
 from services.retrieval_service import search_similar_documents
+from services.prompt_service import get_prompt_db
+from config import get_api_key
 
-llm_model = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+llm_model = OpenAI(api_key=get_api_key())
 
 # Format context singkat agar muat token
 def build_context_block(hits: List[Dict], max_chars_per_block: int = 800) -> List[str]:
@@ -23,6 +23,8 @@ def build_context_block(hits: List[Dict], max_chars_per_block: int = 800) -> Lis
     return blocks
 
 def build_messages(primary_prompt: str, query: str, context_blocks: List[str]) -> List[Dict[str, str]]:
+    fallback = get_prompt_db()
+    fallback_response = fallback.get("fallback_response") if fallback else "Silahkan hubungi admin untuk informasi lebih lanjut."
     system_msg = (
         primary_prompt.strip()
         if primary_prompt and primary_prompt.strip()
@@ -32,11 +34,13 @@ def build_messages(primary_prompt: str, query: str, context_blocks: List[str]) -
     context_joined = "\n\n---\n\n".join(context_blocks) if context_blocks else "(no context)"
     user_msg = (
         "Jawab pertanyaan pengguna HANYA berdasarkan konteks berikut. "
-        "Jika tidak ada jawaban di konteks, jawab dengan sopan bahwa informasi tidak tersedia.\n\n"
+        f"Jika tidak ada jawaban di konteks, jawab dengan sopan bahwa informasi tidak tersedia dan kiriman pesan {fallback_response}\n\n"
         f"KONTEKS:\n{context_joined}\n\n"
         f"PERTANYAAN:\n{query}\n\n"
         "Instruksi tambahan:\n"
-        "- Sebutkan fakta secara ringkas dan to the point.\n"
+        "- Sebutkan fakta secara ringkas dan to the point namun ramah.\n"
+        "- Jangan jawab pertanyaan diluar konteks\n"
+        "- Jangan gunakan karakter yang berlebih dan tidak perlu\n"
     )
     return [
         {"role": "system", "content": system_msg},
