@@ -2,10 +2,10 @@ from config import supabase
 
 TABLE_NAME = "primary_prompt"
 
-def create_prompt_db(prompt: str, fallback_response: str = None):
-    data = {"prompt": prompt, "fallback_response": fallback_response, "is_active": True}
-    result = supabase.table(TABLE_NAME).insert(data).execute()
-    return result.data[0] if result.data else None
+# def create_prompt_db(prompt: str, fallback_response: str = None):
+#     data = {"prompt": prompt, "fallback_response": fallback_response, "is_active": True}
+#     result = supabase.table(TABLE_NAME).insert(data).execute()
+#     return result.data[0] if result.data else None
 
 def get_prompt_db():
     result = supabase.table(TABLE_NAME).select("*").eq("is_active", True).single().execute()

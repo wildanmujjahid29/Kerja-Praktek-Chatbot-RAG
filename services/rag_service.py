@@ -1,14 +1,14 @@
-import os
 from typing import Any, Dict, List
+
 from openai import OpenAI
 
-from services.retrieval_service import search_similar_documents
-from services.prompt_service import get_prompt_db
 from config import get_api_key
+from services.prompt_service import get_prompt_db
+from services.retrieval_service import (get_context_from_results,
+                                        search_similar_documents)
 
 llm_model = OpenAI(api_key=get_api_key())
 
-# Format context singkat agar muat token
 def build_context_block(hits: List[Dict], max_chars_per_block: int = 800) -> List[str]:
     blocks = []
     for i, r in enumerate(hits, 1):
@@ -17,133 +17,127 @@ def build_context_block(hits: List[Dict], max_chars_per_block: int = 800) -> Lis
             content = content[:max_chars_per_block].rstrip() + " ..."
         filename = r.get("filename") or "unknown"
         sim = r.get("similarity", 0.0)
-        blocks.append(
-            f"[{i}] filename: {filename} | similarity: {sim:.2f}\n{content}"
-        )
+        blocks.append(f"[{i}] filename: {filename} | similarity: {sim:.2f}\n{content}")
     return blocks
 
-def build_messages(primary_prompt: str, query: str, context_blocks: List[str]) -> List[Dict[str, str]]:
-    fallback = get_prompt_db()
-    fallback_response = fallback.get("fallback_response") if fallback else "Silahkan hubungi admin untuk informasi lebih lanjut."
+
+def build_messages(primary_prompt: str, query: str, context: str, fallback_response: str | None = None) -> List[Dict[str, str]]:
     system_msg = (
         primary_prompt.strip()
         if primary_prompt and primary_prompt.strip()
-        else "Kamu adalah asisten yang membantu. Hanya jawab menggunakan konteks yang diberikan. Jangan jawab pertanyaan diluar konteks. Jika jawaban tidak ada dalam konteks, katakan bahwa kamu tidak memiliki informasi yang cukup."
+        else (
+            "Kamu adalah asisten yang membantu.\n"
+            "Jawab pertanyaan pengguna HANYA berdasarkan konteks berikut.\n"
+            "Jika jawaban tidak ada di konteks, jawab dengan sopan bahwa informasi tidak tersedia "
+            "dan di akhir tambahkan fallback response.\n"
+            "Instruksi tambahan:\n"
+            "- Sebutkan fakta secara ringkas dan ramah.\n"
+            "- Jangan jawab pertanyaan di luar konteks.\n"
+            "- Jangan gunakan karakter yang berlebih dan tidak perlu.\n"
+        )
+    )
 
-    )
-    context_joined = "\n\n---\n\n".join(context_blocks) if context_blocks else "(no context)"
-    user_msg = (
-        "Jawab pertanyaan pengguna HANYA berdasarkan konteks berikut. "
-        f"Jika tidak ada jawaban di konteks, jawab dengan sopan bahwa informasi tidak tersedia dan kiriman pesan {fallback_response}\n\n"
-        f"KONTEKS:\n{context_joined}\n\n"
-        f"PERTANYAAN:\n{query}\n\n"
-        "Instruksi tambahan:\n"
-        "- Sebutkan fakta secara ringkas dan to the point namun ramah.\n"
-        "- Jangan jawab pertanyaan diluar konteks\n"
-        "- Jangan gunakan karakter yang berlebih dan tidak perlu\n"
-    )
+    if not primary_prompt and fallback_response:
+        system_msg += f"\nFallback default: {fallback_response}"
+
+    context_final = context if context else "(tidak ada konteks relevan)"
+
     return [
         {"role": "system", "content": system_msg},
-        {"role": "user", "content": user_msg},
+        {"role": "user", "content": f"KONTEKS:\n{context_final}\n\nPERTANYAAN:\n{query}"}
     ]
 
 def check_restricted_topics(query: str) -> bool:
-    # Daftar kata kunci sensitif yang di-hardcode di backend
     restricted_keywords = [
         # Politik
-        'jokowi', 'widodo', 'megawati', 'prabowo', 'subianto', 'anies', 'baswedan', 
-        'ganjar', 'pranowo', 'ahok', 'ridwan kamil', 'sandi', 'sandiaga', 'maruf', 'amin',
-        'surya paloh', 'airlangga', 'puan maharani', 'muhaimin', 'cak imin',
-        'presiden', 'wakil presiden', 'menteri', 'gubernur', 'bupati', 'walikota',
-        'dpr', 'dprd', 'mpr', 'kpu', 'pemilu', 'pilpres', 'pilgub', 'pilkada',
-        'partai', 'politik', 'pemerintah', 'kabinet', 'koalisi', 'oposisi',
-        'pdip', 'gerindra', 'golkar', 'nasdem', 'pks', 'pan', 'ppp', 'demokrat',
-        
-        # SARA dan konten sensitif
-        'rasis', 'rasisme', 'sara', 'suku', 'agama', 'ras', 'antar golongan',
-        'islam', 'kristen', 'katolik', 'hindu', 'buddha', 'konghucu',
-        'teroris', 'terorisme', 'radikal', 'radikalisme', 'ekstremis',
-        
-        # Konten dewasa/tidak pantas
+        'jokowi', 'widodo', 'megawati', 'prabowo', 'anies', 'baswedan',
+        'ganjar', 'pranowo', 'ahok', 'ridwan kamil', 'sandiaga', 'maruf',
+        'presiden', 'wakil presiden', 'menteri', 'gubernur', 'bupati',
+        'pemilu', 'politik', 'partai',
+        # Konten dewasa/narkoba
         'seks', 'pornografi', 'telanjang', 'bugil', 'porno',
-        'narkoba', 'drugs', 'ganja', 'marijuana', 'kokain', 'heroin',
-        'kekerasan', 'pembunuhan', 'bunuh', 'mati', 'suicide', 'bunuh diri',
-        
+        'narkoba', 'ganja', 'kokain', 'heroin', 'drugs',
+        # Kekerasan / bunuh diri
+        'bunuh', 'bunuh diri', 'suicide', 'pembunuhan', 'violence',
         # Hate speech
-        'benci', 'kebencian', 'sarkasme', 'hinaan', 'caci maki',
-        'bodoh', 'tolol', 'goblok', 'idiot', 'bangsat'
+        'benci', 'hinaan', 'caci maki', 'bodoh', 'tolol', 'goblok'
     ]
-    
-    # Ubah query ke lowercase untuk pencocokan
     query_lower = query.lower()
-    print(f"DEBUG: query_lower='{query_lower}'")
-    
-    # Periksa setiap kata kunci sensitif
-    for keyword in restricted_keywords:
-        if keyword in query_lower:
-            print(f"DEBUG: RESTRICTED TOPIC FOUND! keyword='{keyword}' detected in query")
-            return True
-    
-    print("DEBUG: No restricted topic found")
-    return False
+    return any(kw in query_lower for kw in restricted_keywords)
 
-def run_rag(query: str, k: int, min_similarity: float = 0.5) -> Dict[str, Any]:
-    # Cek apakah query mengandung topik sensitif/terlarang
+
+def handle_fallback(query: str, message: str, is_restricted: bool = False) -> Dict[str, Any]:
+    return {
+        "answer": message,
+        "sources": [],
+        "used_k": 0,
+        "query": query,
+        "is_fallback": not is_restricted,
+        "is_restricted_topic": is_restricted
+    }
+
+
+def run_rag(query: str, k: int = 5, min_similarity: float = 0.7) -> Dict[str, Any]:
+    # Cek topik yang dibatasi lebih dulu
     if check_restricted_topics(query):
-        return {
-            "answer": "Maaf saya tidak bisa menjawab pertanyaan anda",
-            "sources": [],
-            "used_k": 0,
-            "query": query,
-            "is_restricted_topic": True
-        }
-    
-    # Ambil Primary Prompt & Fallback Response dari DB
-    prompt_data = get_prompt_db()
-    if not prompt_data:
-        return {
-            "answer": "Maaf, saya tidak dapat menjawab pertanyaan Anda saat ini.",
-            "sources": [],
-            "used_k": 0,
-            "query": query,
-            "is_fallback": True
-        }
+        return handle_fallback(
+            query=query,
+            message="Maaf, pertanyaan Anda termasuk topik yang dibatasi dan tidak dapat saya bahas.",
+            is_restricted=True,
+        )
 
+    # Ambil Primary Prompt & Fallback dari DB (tahan terhadap None)
+    prompt_data = get_prompt_db() or {}
     primary_prompt = prompt_data.get("prompt", "")
-    fallback_response = prompt_data.get("fallback_response")
+    fallback_response = prompt_data.get("fallback_response", "Maaf, saya tidak bisa menjawab pertanyaan Anda.")
 
-    # Retrieval dokumen (Top-K)
+    # Retrieval dari Supabase
     hits = search_similar_documents(
         query=query,
         match_threshold=min_similarity,
         match_count=k
-    ) or []
+    )
 
-    # Kalau tidak ada dokumen yang match → fallback response dari database
+    # Kalau kosong Kirimakan fallback
     if not hits:
-        final_fallback = fallback_response if fallback_response else "Maaf, saya tidak dapat menjawab pertanyaan Anda saat ini."
         return {
-            "answer": final_fallback,
+            "answer": f"Saya belum menemukan jawaban yang pas dari knowledge base. {fallback_response}",
             "sources": [],
             "used_k": 0,
             "query": query,
             "is_fallback": True
         }
 
-    # Ada dokumen → build context dan panggil LLM
-    context_blocks = build_context_block(hits)
-    completion = llm_model.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=build_messages(primary_prompt, query, context_blocks),
-        max_tokens=400,
-        temperature=0.2,
-    )
-    answer = completion.choices[0].message.content.strip()
+    # Ada hasil format context
+    context = get_context_from_results(hits)
 
+    # Panggil LLM
+    try:
+        completion = llm_model.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=build_messages(primary_prompt, query, context, fallback_response),
+            max_tokens=400,
+            temperature=0.2,
+        )
+        answer = completion.choices[0].message.content.strip()
+    except Exception:
+        # Jika terjadi error (mis. API key tidak tersedia/koneksi), gunakan fallback
+        return {
+            "answer": f"Terjadi kendala saat menghasilkan jawaban. {fallback_response}",
+            "sources": [],
+            "used_k": len(hits),
+            "query": query,
+            "is_fallback": True
+        }
+
+    # Siapkan response
     sources = [
         {
             "index": i + 1,
+            "id": r.get("id"),
+            "content": r.get("content"),
             "filename": r.get("filename"),
+            "tag": r.get("service_tag"),
             "similarity": round(r.get("similarity", 0.0), 4),
         }
         for i, r in enumerate(hits)

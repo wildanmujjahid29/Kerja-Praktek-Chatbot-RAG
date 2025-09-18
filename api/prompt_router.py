@@ -1,17 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
-from schemas.prompt_schemas import PromptCreate, PromptResponse, PromptUpdate
-from services.prompt_service import (create_prompt_db, delete_prompt_db,
-                                     get_prompt_db, update_prompt_db)
 from dependencies.auth_deps import admin_required
+from schemas.prompt_schemas import PromptResponse, PromptUpdate
+from services.prompt_service import (delete_prompt_db, get_prompt_db,
+                                     update_prompt_db)
+
 router = APIRouter()
 
-@router.post("/chatbot/config", response_model=PromptResponse)
-def create_chatbot_config(prompt: PromptCreate, admin=Depends(admin_required)):
-    result = create_prompt_db(prompt.prompt, prompt.fallback_response)
-    if not result:
-        raise HTTPException(status_code=400, detail="Failed to create chatbot config")
-    return result
 
 @router.get("/chatbot/config",  response_model=PromptResponse)
 def get_chatbot_config(admin=Depends(admin_required)):
