@@ -5,27 +5,34 @@ import uuid
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 
 from dependencies.auth_deps import admin_required
-from schemas.document_schemas import (DocumentOut,
-                                    KnowledgeInput, 
-                                    UniqueTagsResponse,
-                                    UpdateTagRequest,
-                                    DocumentChunkUpdateRequest,
-                                    DocumentChunkUpdateResponse,
-                                    ChunkBatchUpdateRequest,
-                                    ChunkBatchUpdateResponse)
-from services.document_service import (delete_document_by_filename,
-                                    delete_document_by_id,
-                                    get_all_documents,
-                                    get_documents_by_service_tag,
-                                    get_unique_service_tags,
-                                    remove_tag_from_document_by_filename,
-                                    update_document_tag_by_filename,
-                                    get_document_chunk_by_id,
-                                    update_document_chunk,
-                                    update_document_chunks_batch)
-from services.embed_service import (chunk_text, embedding_text_from_file,
-                                    embedding_text_from_input,
-                                    load_text_from_file, preprocess_text)
+from schemas.document_schemas import (
+    DocumentOut,
+    KnowledgeInput, 
+    UniqueTagsResponse,
+    UpdateTagRequest,
+    DocumentChunkUpdateRequest,
+    DocumentChunkUpdateResponse,
+    ChunkBatchUpdateRequest,
+    ChunkBatchUpdateResponse
+)
+from services.document_service import (
+    delete_document_by_filename,
+    delete_document_by_id,
+    get_all_documents,
+    get_documents_by_service_tag,
+    get_unique_service_tags,
+    remove_tag_from_document_by_filename,
+    update_document_tag_by_filename,
+    update_document_chunk,
+    update_document_chunks_batch
+)
+from services.embed_service import (
+    chunk_text, 
+    embedding_text_from_file,
+    embedding_text_from_input,
+    load_text_from_file, 
+    preprocess_text
+)
 
 router = APIRouter()
 
@@ -171,7 +178,7 @@ def update_chunk(document_id: str, body: DocumentChunkUpdateRequest, admin=Depen
         raise HTTPException(status_code=404, detail="Chunk / Document ID tidak ditemukan")
     return updated
 
-@router.put("/document/chunks/batch", response_model=ChunkBatchUpdateResponse)
+@router.put("/document/chunks/batch", response_model=ChunkBatchUpdateResponse, include_in_schema=False)
 def update_chunks_batch(body: ChunkBatchUpdateRequest, admin=Depends(admin_required)):
     if not body.items or len(body.items) == 0:
         raise HTTPException(status_code=400, detail="List items kosong")

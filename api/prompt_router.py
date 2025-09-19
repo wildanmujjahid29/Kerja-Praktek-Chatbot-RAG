@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from dependencies.auth_deps import admin_required
 from schemas.prompt_schemas import PromptResponse, PromptUpdate
-from services.prompt_service import (delete_prompt_db, get_prompt_db,
-                                     update_prompt_db)
+from services.prompt_service import (
+    delete_prompt_db, 
+    get_prompt_db,
+    update_prompt_db
+)
 
 router = APIRouter()
 

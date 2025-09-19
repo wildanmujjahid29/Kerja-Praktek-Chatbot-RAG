@@ -1,22 +1,44 @@
-import uuid
 from datetime import datetime
 from typing import Any, Dict, List
 
 from config import supabase
-from schemas.chat_schemas import (ChatMessage, ChatSession,
-                                  ChatSessionWithMessages)
+from schemas.chat_schemas import (
+    ChatMessage, 
+    ChatSession,
+    ChatSessionWithMessages
+)
 from services.rag_service import run_rag
 
 CHAT_SESSIONS = "chat_sessions"
 CHAT_MESSAGES = "chat_messages"
 
 
-def create_session(user_id: str, session_name: str = "New Chat") -> ChatSession:
-    data = {"user_id": user_id, "session_name": session_name}
+def create_session(user_id: str = None, session_name: str = "New Chat") -> ChatSession:
+    data = {"session_name": session_name}
+    if user_id:
+        data["user_id"] = user_id
     result = supabase.table(CHAT_SESSIONS).insert(data).execute()
     if not result.data:
         raise Exception("Failed to create chat session")
     return ChatSession(**result.data[0])
+
+def get_or_create_session(session_id: str = None, session_name: str = "New Chat") -> tuple[ChatSession, bool]:
+    """
+    Get existing session by ID or create new one if not found/not provided.
+    Returns (session, is_new) where is_new=True if a new session was created.
+    """
+    if session_id:
+        try:
+            session_result = supabase.table(CHAT_SESSIONS).select("*").eq("id", session_id).eq("is_active", True).single().execute()
+            if session_result.data:
+                return ChatSession(**session_result.data), False
+        except Exception:
+            # Session not found or error, create new one
+            pass
+    
+    # Create new session
+    new_session = create_session(session_name=session_name)
+    return new_session, True
 
 def get_session_with_messages(session_id: str) -> ChatSessionWithMessages:
     
@@ -31,12 +53,6 @@ def get_session_with_messages(session_id: str) -> ChatSessionWithMessages:
     messages_data = messages_result.data or []
     messages = [ChatMessage(**msg) for msg in messages_data]
     return ChatSessionWithMessages(**session_data, messages=messages)
-
-def list_sessions_by_user(user_id: str) -> List[ChatSession]:
-    result = supabase.table(CHAT_SESSIONS).select("*").eq("user_id", user_id).eq("is_active", True).order("updated_at", desc=True).execute()
-
-    sessions_data = result.data or []
-    return [ChatSession(**session) for session in sessions_data]
 
 def save_message(session_id: str, role: str, content: str, sources: List[Dict] = None) -> ChatMessage:
     data = {

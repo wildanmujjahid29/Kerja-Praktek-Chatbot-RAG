@@ -1,62 +1,108 @@
-from typing import List
-
-from fastapi import APIRouter, HTTPException, Query
-
-from schemas.chat_schemas import (ChatResponse, ChatSession,
-                                    ChatSessionWithMessages,
-                                    CreateChatSessionRequest, SendMessageRequest)
-from services.chat_service import (create_session, delete_session,
-                                    get_session_with_messages,
-                                    list_sessions_by_user, send_message)
+from fastapi import APIRouter, HTTPException, Request, Response
+from schemas.chat_schemas import (
+    ChatResponse, 
+    ChatSessionWithMessages,
+    SendMessageRequest, 
+    SessionResponse
+)
+from services.chat_service import (
+    delete_session, 
+    get_or_create_session,
+    get_session_with_messages, 
+    send_message
+)
 
 router = APIRouter()
 
-@router.post("/chat/session")
-def create_chat_session(request: CreateChatSessionRequest) -> ChatSession:
+@router.get("/chat/session")
+def get_or_create_chat_session(request: Request, response: Response, session_name: str = "New Chat") -> SessionResponse:
+    """
+    Ambil session dari cookie kalau sudah ada,
+    atau buat session baru kalau belum ada.
+    """
     try:
-        session = create_session(user_id=request.user_id, session_name=request.session_name or "New Chat")
-        return session
+        session_id = request.cookies.get("session_id")
+        session, is_new = get_or_create_session(session_id, session_name)
+
+        response.set_cookie(
+            key="session_id", 
+            value=session.id, 
+            max_age=30*24*60*60,
+            httponly=True,
+            samesite="lax"
+        )
+
+        return SessionResponse(
+            session_id=session.id,
+            session_name=session.session_name,
+            created_at=session.created_at,
+            is_new=is_new
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/chat/session/{session_id}/message")
-def send_message_endpoint(session_id: str, request: SendMessageRequest) -> ChatResponse:
+@router.post("/chat/message")
+def send_message_cookie_endpoint(request: Request, response: Response, message_request: SendMessageRequest) -> ChatResponse:
+    """
+    Kirim pesan dengan menggunakan session dari cookie.
+    Jika session belum ada, sistem otomatis membuat session baru.
+    """
     try:
-        session = get_session_with_messages(session_id=session_id)
-        if not session.is_active:
-            raise HTTPException(status_code=403, detail="Session is not active. Cannot send message.")
+        session_id = request.cookies.get("session_id")
+        session, is_new = get_or_create_session(session_id)
+
+        if is_new:
+            response.set_cookie(
+                key="session_id", 
+                value=session.id, 
+                max_age=30*24*60*60,
+                httponly=True,
+                samesite="lax"
+            )
+
         result = send_message(
-            session_id,
-            request.message,
-            request.k or 3,
-            request.min_similarity or 0.3
+            session.id,
+            message_request.message,
+            message_request.k or 3,
+            message_request.min_similarity or 0.3
         )
         return ChatResponse(**result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.get("/chat/session/{session_id}")
-def get_chat_session(session_id: str) -> ChatSessionWithMessages:
+@router.get("/chat/history")
+def get_chat_history(request: Request) -> ChatSessionWithMessages:
+    """
+    Ambil riwayat chat berdasarkan session yang ada di cookie.
+    """
     try:
+        session_id = request.cookies.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=404, detail="Tidak ada session di cookie")
+
         session = get_session_with_messages(session_id=session_id)
         return session
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
-@router.get("/chat/sessions/user/{user_id}")
-def list_user_sessions(user_id: str) -> List[ChatSession]:
+
+@router.delete("/chat/session")
+def delete_current_session(request: Request, response: Response) -> dict:
+    """
+    Hapus session yang sedang aktif berdasarkan cookie
+    dan sekalian hapus cookie `session_id`.
+    """
     try:
-        sessions = list_sessions_by_user(user_id)
-        return sessions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@router.delete("/chat/session/{session_id}")
-def delete_chat_session(session_id: str) -> dict:
-    try:
+        session_id = request.cookies.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=404, detail="Tidak ada session di cookie")
+
         success = delete_session(session_id)
-        return {"status": "success" if success else "failed"}
+
+        response.delete_cookie(key="session_id")
+
+        return {"status": "success" if success else "failed", "message": "Session dan cookie berhasil dihapus"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

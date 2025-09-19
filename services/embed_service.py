@@ -3,10 +3,8 @@ import unicodedata
 
 import numpy as np
 from chonkie import SentenceChunker
-from langchain_community.document_loaders import (Docx2txtLoader, PyPDFLoader,
-                                                  TextLoader)
+from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader
 from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from config import get_api_key, supabase
 

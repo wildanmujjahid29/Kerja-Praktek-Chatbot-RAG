@@ -6,6 +6,7 @@ from services.rag_service import run_rag
 
 router = APIRouter()
 
+# Testing Pesan
 @router.post("/rag", response_model=RAGResponse)
 def rag_answer(body: RAGRequest, _: object = Depends(admin_required)):
     try:

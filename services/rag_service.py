@@ -4,8 +4,7 @@ from openai import OpenAI
 
 from config import get_api_key
 from services.prompt_service import get_prompt_db
-from services.retrieval_service import (get_context_from_results,
-                                        search_similar_documents)
+from services.retrieval_service import get_context_from_results, search_similar_documents
 
 llm_model = OpenAI(api_key=get_api_key())
 

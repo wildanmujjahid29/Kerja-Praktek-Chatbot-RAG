@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from services.auth_service import (get_admin_from_token, login_admin,
-                                   register_admin)
+from services.auth_service import (
+    get_admin_from_token, login_admin,
+    register_admin
+)
 
 security = HTTPBearer()
 
